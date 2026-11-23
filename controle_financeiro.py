@@ -12,15 +12,15 @@ CATEGORIAS_DESPESA = [
 ]
 
 
+# Formata um número para o formato R$ 0,00
 def formatar_moeda(valor):
-    #Formata um número float para o padrão monetário brasileiro (R$).#
-    sinal = "-" if valor < 0 else ""
-    valor_formatado = f"{abs(valor):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"{sinal}R$ {valor_formatado}"
+    texto = f"{abs(valor):.2f}".replace(".", ",")
+    if valor < 0:
+        return f"-R$ {texto}"
+    return f"R$ {texto}"
 
 
 def ler_valor_positivo(mensagem):
-    #Solicita ao usuário um valor numérico maior que zero e retorna como float.#
     while True:
         entrada = input(mensagem).strip().replace(",", ".")
         try:
@@ -29,19 +29,18 @@ def ler_valor_positivo(mensagem):
                 return valor
             print("Digite um valor maior que zero.")
         except ValueError:
-            print("Valor inválido. Exemplo válido: 150.50 ou 150,50.")
+            print("Valor inválido. Tente algo como 150.50 ou 150,50.")
 
 
 def escolher_categoria(tipo):
-    #Permite escolher uma categoria sugerida ou digitar uma categoria personalizada.#
     if tipo == "receita":
         categorias = CATEGORIAS_RECEITA
     else:
         categorias = CATEGORIAS_DESPESA
 
     print("\nCategorias disponíveis:")
-    for indice, nome in enumerate(categorias, start=1):
-        print(f"  {indice}. {nome}")
+    for i in range(len(categorias)):
+        print(f"  {i + 1}. {categorias[i]}")
     print(f"  {len(categorias) + 1}. Digitar outra categoria")
 
     while True:
@@ -52,37 +51,40 @@ def escolher_categoria(tipo):
                 return categorias[numero - 1]
             elif numero == len(categorias) + 1:
                 personalizada = input("Digite o nome da categoria: ").strip()
-                if personalizada:
+                if personalizada != "":
                     return personalizada
                 print("A categoria não pode ficar vazia.")
             else:
-                print("Número fora das opções disponíveis.")
+                print("Número fora das opções.")
         else:
-            print("Digite apenas o número correspondente à categoria.")
+            print("Digite apenas o número da categoria.")
 
 
 def exibir_menu():
-    #Exibe o menu principal do aplicativo no terminal.#
-    print("\n" + "=" * 46)
-    print("       MEU BOLSO-CONTROLE FINANCEIRO")
-    print("=" * 46)
+    print("\n==============================================")
+    print("       MEU BOLSO - CONTROLE FINANCEIRO")
+    print("==============================================")
     print("1. Registrar receita")
     print("2. Registrar despesa")
     print("3. Consultar saldo e extrato")
     print("4. Resumo por categoria")
     print("5. Remover lançamento")
     print("6. Sair")
-    print("=" * 46)
+    print("==============================================")
 
 
+# Função base usada para cadastrar receita ou despesa
 def registrar_transacao(transacoes, tipo):
-    #Registra uma nova transação (receita ou despesa) e retorna o registro criado.#
-    titulo = "RECEITA" if tipo == "receita" else "DESPESA"
+    if tipo == "receita":
+        titulo = "RECEITA"
+    else:
+        titulo = "DESPESA"
+
     print(f"\n--- REGISTRAR NOVA {titulo} ---")
 
     while True:
         descricao = input("Descrição (ex: Salário, Mercado, Luz): ").strip()
-        if descricao:
+        if descricao != "":
             break
         print("A descrição não pode ficar vazia.")
 
@@ -99,22 +101,19 @@ def registrar_transacao(transacoes, tipo):
     }
 
     transacoes.append(nova_transacao)
-    print(f"\n{titulo.capitalize()} registrada com sucesso: {descricao} ({formatar_moeda(valor)})")
+    print(f"\n{titulo.capitalize()} registrada: {descricao} ({formatar_moeda(valor)})")
     return nova_transacao
 
 
 def registrar_receita(transacoes):
-    #Funcionalidade de registro de receita.#
     return registrar_transacao(transacoes, "receita")
 
 
 def registrar_despesa(transacoes):
-    #Funcionalidade de registro de despesa.#
     return registrar_transacao(transacoes, "despesa")
 
 
 def calcular_resumo(transacoes):
-    #Calcula e retorna o total de receitas, o total de despesas e o saldo atual.#
     total_receitas = 0.0
     total_despesas = 0.0
 
@@ -129,51 +128,46 @@ def calcular_resumo(transacoes):
 
 
 def consultar_saldo_e_extrato(transacoes):
-    #Exibe todas as movimentações cadastradas e o resumo financeiro atual.#
     print("\n--- SALDO E EXTRATO ---")
 
-    if not transacoes:
-        print("Nenhum lançamento registrado até o momento.")
+    if len(transacoes) == 0:
+        print("Nenhum lançamento registrado ainda.")
         return
 
-    print(f"{'Nº':<4} {'Data':<17} {'Tipo':<9} {'Categoria':<15} {'Descrição':<20} {'Valor':>14}")
-    print("-" * 83)
-
-    for indice, item in enumerate(transacoes, start=1):
-        tipo_texto = "Receita" if item["tipo"] == "receita" else "Despesa"
-        valor_texto = formatar_moeda(item["valor"])
+    for i in range(len(transacoes)):
+        item = transacoes[i]
         if item["tipo"] == "receita":
-            valor_exibido = f"+ {valor_texto}"
+            tipo_texto = "Receita"
+            sinal = "+"
         else:
-            valor_exibido = f"- {valor_texto}"
+            tipo_texto = "Despesa"
+            sinal = "-"
 
-        descricao_curta = item["descricao"][:19]
-        categoria_curta = item["categoria"][:14]
         print(
-            f"{indice:<4} {item['data']:<17} {tipo_texto:<9} "
-            f"{categoria_curta:<15} {descricao_curta:<20} {valor_exibido:>14}"
+            f"{i + 1}. [{item['data']}] {tipo_texto} | {item['categoria']} | "
+            f"{item['descricao']} | {sinal} {formatar_moeda(item['valor'])}"
         )
 
     total_receitas, total_despesas, saldo = calcular_resumo(transacoes)
 
-    print("-" * 83)
+    print("\n----------------------------------------------")
     print(f"Total de receitas: {formatar_moeda(total_receitas)}")
     print(f"Total de despesas: {formatar_moeda(total_despesas)}")
-    print(f"Saldo atual:       {formatar_moeda(saldo)}")
+    print(f"Saldo atual: {formatar_moeda(saldo)}")
 
     if saldo > 0:
-        print("Situação:          Saldo positivo!")
+        print("Situação: Saldo positivo!")
     elif saldo < 0:
-        print("Situação:          Atenção! Saldo negativo.")
+        print("Situação: Atenção, saldo negativo.")
     else:
-        print("Situação:          Saldo zerado (receitas iguais às despesas).")
+        print("Situação: Saldo zerado.")
 
 
+# Agrupa os valores por categoria e mostra o percentual de cada uma
 def exibir_resumo_por_categoria(transacoes):
-    #Agrupa e exibe o total de receitas e despesas por categoria.#
     print("\n--- RESUMO POR CATEGORIA ---")
 
-    if not transacoes:
+    if len(transacoes) == 0:
         print("Nenhum lançamento registrado para gerar resumo.")
         return
 
@@ -184,41 +178,57 @@ def exibir_resumo_por_categoria(transacoes):
         categoria = item["categoria"]
         valor = item["valor"]
         if item["tipo"] == "receita":
-            receitas_cat[categoria] = receitas_cat.get(categoria, 0.0) + valor
+            if categoria in receitas_cat:
+                receitas_cat[categoria] += valor
+            else:
+                receitas_cat[categoria] = valor
         elif item["tipo"] == "despesa":
-            despesas_cat[categoria] = despesas_cat.get(categoria, 0.0) + valor
+            if categoria in despesas_cat:
+                despesas_cat[categoria] += valor
+            else:
+                despesas_cat[categoria] = valor
 
     total_receitas, total_despesas, _ = calcular_resumo(transacoes)
 
     print("\nReceitas por categoria:")
-    if receitas_cat:
-        for categoria, valor in sorted(receitas_cat.items(), key=lambda x: x[1], reverse=True):
-            percentual = (valor / total_receitas) * 100 if total_receitas > 0 else 0
-            print(f"  - {categoria:<18}: {formatar_moeda(valor):>14} ({percentual:.1f}%)")
+    if len(receitas_cat) > 0:
+        for categoria, valor in receitas_cat.items():
+            if total_receitas > 0:
+                percentual = (valor / total_receitas) * 100
+            else:
+                percentual = 0
+            print(f"  - {categoria}: {formatar_moeda(valor)} ({percentual:.1f}%)")
     else:
         print("  Nenhuma receita cadastrada.")
 
     print("\nDespesas por categoria:")
-    if despesas_cat:
-        for categoria, valor in sorted(despesas_cat.items(), key=lambda x: x[1], reverse=True):
-            percentual = (valor / total_despesas) * 100 if total_despesas > 0 else 0
-            print(f"  - {categoria:<18}: {formatar_moeda(valor):>14} ({percentual:.1f}%)")
+    if len(despesas_cat) > 0:
+        for categoria, valor in despesas_cat.items():
+            if total_despesas > 0:
+                percentual = (valor / total_despesas) * 100
+            else:
+                percentual = 0
+            print(f"  - {categoria}: {formatar_moeda(valor)} ({percentual:.1f}%)")
     else:
         print("  Nenhuma despesa cadastrada.")
 
 
 def remover_transacao(transacoes):
-    #Remove um lançamento escolhido pelo usuário e retorna True se algum item foi removido.#
     print("\n--- REMOVER LANÇAMENTO ---")
 
-    if not transacoes:
+    if len(transacoes) == 0:
         print("Não há lançamentos para remover.")
         return False
 
-    for indice, item in enumerate(transacoes, start=1):
-        tipo_texto = "Receita" if item["tipo"] == "receita" else "Despesa"
+    for i in range(len(transacoes)):
+        item = transacoes[i]
+        if item["tipo"] == "receita":
+            tipo_texto = "Receita"
+        else:
+            tipo_texto = "Despesa"
+
         print(
-            f"  {indice}. [{item['data']}] {tipo_texto} - "
+            f"  {i + 1}. [{item['data']}] {tipo_texto} - "
             f"{item['descricao']} ({item['categoria']}) | {formatar_moeda(item['valor'])}"
         )
 
@@ -234,17 +244,13 @@ def remover_transacao(transacoes):
             return False
         elif 1 <= numero <= len(transacoes):
             removido = transacoes.pop(numero - 1)
-            print(
-                f"Lançamento removido: {removido['descricao']} "
-                f"({formatar_moeda(removido['valor'])})"
-            )
+            print(f"Lançamento removido: {removido['descricao']} ({formatar_moeda(removido['valor'])})")
             return True
         else:
             print("Número de lançamento inexistente.")
 
 
 def main():
-    #Função principal que controla o fluxo do menu interativo.#
     transacoes = []
     print("Bem-vindo ao MEU BOLSO!")
 
@@ -270,8 +276,4 @@ def main():
             print("\nOpção inválida! Escolha um número entre 1 e 6.")
 
 
-if __name__ == "__main__":
-    try:
-        main()
-    except (KeyboardInterrupt, EOFError):
-        print("\n\nPrograma encerrado pelo usuário.")
+main()
